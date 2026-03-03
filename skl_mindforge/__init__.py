@@ -10,11 +10,11 @@ class ZenithTokenizer:
         model_path = os.path.join(current_dir, model_filename)
         
         if not os.path.exists(model_path):
-            # Fallback for different environments
+            # Fallback for manual paths
             model_path = model_filename 
             
         if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Missing {model_filename}")
+            raise FileNotFoundError(f"Missing {model_filename} at {model_path}")
             
         # 2. Load the core Rust-based tokenizer
         self.tokenizer = Tokenizer.from_file(model_path)
@@ -34,29 +34,29 @@ class ZenithTokenizer:
 
     def decode(self, ids, skip_special_tokens=True):
         """
-        Converts IDs back to text and cleans Zenith-specific BPE artifacts.
-        Handles the Ġ, ¹, and byte-level mojibake (Â, Ä ł).
+        Converts IDs back to text and surgically cleans Zenith/BPE artifacts.
+        Fixes: Ġ, Ċ, ¹, and Byte-Level Mojibake (Â, Ä, ł, etc.)
         """
-        # 1. Get the raw string from the library
-        # This will contain the 'Ġ' and 'Â' symbols initially
+        # A. Get raw string from the library
         raw_output = self.tokenizer.decode(ids, skip_special_tokens=skip_special_tokens)
         
-        # 2. Convert BPE space/newline markers to real whitespace
+        # B. Replace BPE markers with real whitespace
         clean = raw_output.replace('Ġ', ' ').replace('Ċ', '\n')
         
-        # 3. Strip the start-token artifact
-        clean = clean.replace('¹', '')
-        
-        # 4. FIX THE MOJIBAKE (The Â, Ä, ł stuff)
-        # We use 'latin-1' to get raw bytes, then 'utf-8' to rebuild the characters correctly
+        # C. SURGICAL NOISE REMOVAL
+        # We target the specific multi-byte ghosts left by the BPE process
+        noise_chars = ['Â', '¹', 'ÃĤ', 'ÃĦ', 'ÅĤ', 'Ã', 'Å', 'ł', 'Ã', 'Ħ']
+        for char in noise_chars:
+            clean = clean.replace(char, '')
+
+        # D. FINAL BYTE RECOVERY
         try:
-            # This is the "Magic" step that fixes the 'ĠÄ ł' mess
+            # Force remaining byte-shuffled characters into UTF-8
             clean = clean.encode('latin-1').decode('utf-8', errors='ignore')
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            # Fallback if the byte-shuffle fails
-            clean = re.sub(r'[ÂÄł¹]', '', clean)
-            
-        # 5. Final Polish: remove redundant whitespace and strip edges
+        except:
+            pass
+
+        # E. POLISH
         return " ".join(clean.split()).strip()
 
 # Alias for compatibility
