@@ -1,15 +1,15 @@
 # 🌌 skl_mindforge
 
-A custom, high-efficiency tokenizer library built for the **Novis SLM** project.
+A custom, high-efficiency tokenizer library built as a core component of the **Novis SLM** project.
 
 ## 🛠️ Project Independence
-This tokenizer is a **proprietary asset** of the Novis project. Unlike many SLMs that rely on external APIs or pre-existing vocabularies (like OpenAI's Tiktoken or Meta's Llama tokenizer), `skl_mindforge` was trained from scratch.
+This tokenizer is a **proprietary asset** of the Novis project. Unlike standard Small Language Models that rely on third-party vocabularies, `skl_mindforge` was trained from scratch to ensure maximum data density and scientific integrity.
 
 ### Ownership & Credits:
-- **Architecture:** 100% Custom.
-- **Weights/Vocabulary:** Independently trained using the `tokenizers` library (Apache 2.0).
-- **Data Source:** Trained on a curated mix of the **OpenWebText** dataset and custom synthetic data.
-- **License:** MIT License.
+- **Architecture:** 100% Custom Zenith Architecture.
+- **Weights/Vocabulary:** Independently trained on a 40,000 token optimized corpus.
+- **Scientific Engine:** Built-in Byte-Level recovery for 150+ mathematical and Greek symbols.
+- **License:** MIT License (Commercial licenses available for no-attribution use).
 
 ## 🚀 Installation
 
