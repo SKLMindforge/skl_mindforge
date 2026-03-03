@@ -11,7 +11,7 @@ class ZenithTokenizer:
             model_path = model_filename 
             
         if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Missing {model_filename}")
+            raise FileNotFoundE(f"Missing {model_filename}")
             
         self.tokenizer = Tokenizer.from_file(model_path)
         self.tokenizer.post_processor = TemplateProcessing(
@@ -59,4 +59,4 @@ class ZenithTokenizer:
         
         return clean.strip()
 
-zenith_tokenizer = ZenithTokenizer
+zenith_tokenizer = ZenithToke
