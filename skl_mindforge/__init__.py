@@ -17,21 +17,21 @@ class ZenithTokenizer:
         # 2. Load Core Engine
         self.tokenizer = Tokenizer.from_file(model_path)
         
-        # 3. FIX: Ghost Space & Tab Loss
-        # We use a simple ByteLevel pre-tokenizer but TURN OFF the GPT-2 regex.
-        # This prevents \t from being treated as a 'word boundary' and mangled.
+        # 3. FIX: The Tab & Space Balance
+        # We use ByteLevel(add_prefix_space=False) which is the industry standard
+        # for GPT-style models that need to preserve code indentation/tabs.
         self.tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(
             add_prefix_space=False,
-            use_regex=False  # This is the secret to preserving raw tabs/newlines
+            use_regex=True  # We turn this back ON to ensure \t is mapped correctly
         )
         
-        # 4. FIX: Professional Decoder
+        # 4. FIX: Professional Decoder (Force no-trim)
         self.tokenizer.decoder = decoders.ByteLevel(
             add_prefix_space=False, 
             trim_offsets=False
         )
         
-        # 5. Post-Processor (Standard SLM format)
+        # 5. Post-Processor
         self.tokenizer.post_processor = TemplateProcessing(
             single="<s> $A </s>",
             pair="<s> $A </s> <s> $B </s>",
@@ -45,15 +45,14 @@ class ZenithTokenizer:
 
     def encode(self, text):
         if not text: return []
-        # Ensure we don't add special tokens during internal character testing
-        return self.tokenizer.encode(str(text)).ids
+        # Return IDs without adding special tokens for internal logic tests
+        return self.tokenizer.encode(str(text), add_special_tokens=False).ids
 
     def decode(self, ids, skip_special_tokens=True):
         # 1. Primary Decode
         decoded = self.tokenizer.decode(ids, skip_special_tokens=skip_special_tokens)
 
         # 2. THE STEM RECOVERY MAP
-        # This acts as your "Hard-Coded" insurance for science symbols
         manual_fixes = {
             "âĦı": "ℏ", "âĪĤ": "∂", "âĪĩ": "∇", "Î¨": "Ψ", "Î¦": "Φ", "âĪ®": "∮", 
             "âīĪ": "≈", "ÃĹ": "×", "âģ»": "⁻", "âĤĢ": "₀", "ÏĢ": "π", "âĪĢ": "∀", 
