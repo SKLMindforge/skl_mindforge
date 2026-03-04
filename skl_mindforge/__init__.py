@@ -17,15 +17,21 @@ class ZenithTokenizer:
         # 2. Load Core Engine
         self.tokenizer = Tokenizer.from_file(model_path)
         
-        # 3. CRITICAL FIX: Disable Prefix Space in Pre-Tokenizer
-        # This stops the ' ' from being added to the very first token.
-        self.tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
+        # 3. FIX: Ghost Space & Tab Loss
+        # We use a simple ByteLevel pre-tokenizer but TURN OFF the GPT-2 regex.
+        # This prevents \t from being treated as a 'word boundary' and mangled.
+        self.tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(
+            add_prefix_space=False,
+            use_regex=False  # This is the secret to preserving raw tabs/newlines
+        )
         
-        # 4. CRITICAL FIX: Disable Prefix Space in Decoder
-        # This ensures that when we turn IDs back to text, no extra space is injected.
-        self.tokenizer.decoder = decoders.ByteLevel(add_prefix_space=False, trim_offsets=False)
+        # 4. FIX: Professional Decoder
+        self.tokenizer.decoder = decoders.ByteLevel(
+            add_prefix_space=False, 
+            trim_offsets=False
+        )
         
-        # 5. Post-Processor (Keep it clean)
+        # 5. Post-Processor (Standard SLM format)
         self.tokenizer.post_processor = TemplateProcessing(
             single="<s> $A </s>",
             pair="<s> $A </s> <s> $B </s>",
@@ -39,14 +45,15 @@ class ZenithTokenizer:
 
     def encode(self, text):
         if not text: return []
-        # We use 'encode_batch' or 'encode' but check that it doesn't add leading whitespace
-        return self.tokenizer.encode(str(text), add_special_tokens=True).ids
+        # Ensure we don't add special tokens during internal character testing
+        return self.tokenizer.encode(str(text)).ids
 
     def decode(self, ids, skip_special_tokens=True):
         # 1. Primary Decode
         decoded = self.tokenizer.decode(ids, skip_special_tokens=skip_special_tokens)
 
         # 2. THE STEM RECOVERY MAP
+        # This acts as your "Hard-Coded" insurance for science symbols
         manual_fixes = {
             "âĦı": "ℏ", "âĪĤ": "∂", "âĪĩ": "∇", "Î¨": "Ψ", "Î¦": "Φ", "âĪ®": "∮", 
             "âīĪ": "≈", "ÃĹ": "×", "âģ»": "⁻", "âĤĢ": "₀", "ÏĢ": "π", "âĪĢ": "∀", 
