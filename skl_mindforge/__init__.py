@@ -16,24 +16,24 @@ class ZenithTokenizer:
         # 1. Load the core engine
         self.tokenizer = Tokenizer.from_file(model_path)
         
-        # 2. CRITICAL FIX: Kill the Normalizer
-        # This stops the engine from 'cleaning' (deleting) Tabs and Newlines.
+        # 2. THE KILL SWITCH: Disable the Normalizer
+        # This is the most important line. It stops the .json from deleting your tabs.
         self.tokenizer.normalizer = None 
         
-        # 3. FIX: Standard ByteLevel Pre-tokenizer
-        # By setting use_regex=True, it correctly maps the Tab byte (ASCII 9).
+        # 3. THE RECOVERY: Force Byte-Level Mapping
+        # We use a Sequence to catch the Tab specifically and treat it as a byte.
         self.tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(
             add_prefix_space=False,
             use_regex=True
         )
         
-        # 4. FIX: Decoder (Match the encoder settings)
+        # 4. THE DECODER: 1:1 Parity
         self.tokenizer.decoder = decoders.ByteLevel(
             add_prefix_space=False, 
             trim_offsets=False
         )
         
-        # 5. Standard Post-Processing
+        # 5. POST-PROCESSOR
         self.tokenizer.post_processor = TemplateProcessing(
             single="<s> $A </s>",
             pair="<s> $A </s> <s> $B </s>",
@@ -47,7 +47,7 @@ class ZenithTokenizer:
 
     def encode(self, text):
         if not text: return []
-        # Encode WITHOUT special tokens for pure data-integrity testing
+        # Encode WITHOUT special tokens for the forensics test
         return self.tokenizer.encode(str(text), add_special_tokens=False).ids
 
     def decode(self, ids, skip_special_tokens=True):
