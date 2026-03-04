@@ -1,5 +1,5 @@
 import os
-from tokenizers import Tokenizer, decoders
+from tokenizers import Tokenizer, decoders, pre_tokenizers
 from tokenizers.processors import TemplateProcessing
 
 class ZenithTokenizer:
@@ -17,10 +17,15 @@ class ZenithTokenizer:
         # 2. Load Core Engine
         self.tokenizer = Tokenizer.from_file(model_path)
         
-        # 3. FIX: ByteLevel Decoder (Disables aggressive trimming to stop "Deleting Text")
+        # 3. CRITICAL FIX: Disable Prefix Space in Pre-Tokenizer
+        # This stops the ' ' from being added to the very first token.
+        self.tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
+        
+        # 4. CRITICAL FIX: Disable Prefix Space in Decoder
+        # This ensures that when we turn IDs back to text, no extra space is injected.
         self.tokenizer.decoder = decoders.ByteLevel(add_prefix_space=False, trim_offsets=False)
         
-        # 4. Post-Processor (Adds <s> and </s> automatically)
+        # 5. Post-Processor (Keep it clean)
         self.tokenizer.post_processor = TemplateProcessing(
             single="<s> $A </s>",
             pair="<s> $A </s> <s> $B </s>",
@@ -28,19 +33,20 @@ class ZenithTokenizer:
         )
         self.vocab_size = self.tokenizer.get_vocab_size()
         
-        # 5. WATERMARK (Stable 32-bit ID)
+        # 6. WATERMARK (Stable 32-bit ID)
         self.signature_id = 271227292
         self.signature_text = "SKL_ZENITH_PROPRIETARY_2026"
 
     def encode(self, text):
         if not text: return []
-        return self.tokenizer.encode(str(text)).ids
+        # We use 'encode_batch' or 'encode' but check that it doesn't add leading whitespace
+        return self.tokenizer.encode(str(text), add_special_tokens=True).ids
 
     def decode(self, ids, skip_special_tokens=True):
-        # 1. Primary Decode (Raw UTF-8 Bytes)
+        # 1. Primary Decode
         decoded = self.tokenizer.decode(ids, skip_special_tokens=skip_special_tokens)
 
-        # 2. THE STEM RECOVERY MAP (Fixes "Breaking Science Symbols")
+        # 2. THE STEM RECOVERY MAP
         manual_fixes = {
             "âĦı": "ℏ", "âĪĤ": "∂", "âĪĩ": "∇", "Î¨": "Ψ", "Î¦": "Φ", "âĪ®": "∮", 
             "âīĪ": "≈", "ÃĹ": "×", "âģ»": "⁻", "âĤĢ": "₀", "ÏĢ": "π", "âĪĢ": "∀", 
@@ -58,7 +64,6 @@ class ZenithTokenizer:
         return decoded
 
     def verify_authenticity(self):
-        """Verifies the Zenith Proprietary Watermark."""
         try:
             return self.signature_text in self.decode([self.signature_id])
         except:
